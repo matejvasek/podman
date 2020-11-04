@@ -49,7 +49,7 @@ var _ = Describe("Podman cp", func() {
 
 		err := ioutil.WriteFile(srcPath, fromHostToContainer, 0644)
 		Expect(err).To(BeNil())
-
+		
 		session = podmanTest.Podman([]string{"cp", srcPath, name + ":foo/"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).To(ExitWithError())
@@ -122,6 +122,14 @@ var _ = Describe("Podman cp", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
+		// those test below are now failing
+		// if paths ends with "/." then it's not supposed to do copy,
+		// however current implementation carries out copy with full path
+		// e.g. with `podman cp /some/abs/path/. xyz:/adir`
+		// you end up with `xyz:/adir/some/abs/path/`
+		// this seems to be a property of Buildah `copier` pkd
+		// I believe it would make more sense if you ended up with `xyz:/adir/path/` in such a case, right?
+		//
 		session = podmanTest.Podman([]string{"cp", testDirPath + "/.", testctr + ":/foo"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
