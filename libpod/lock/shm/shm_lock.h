@@ -13,10 +13,15 @@ typedef uint32_t bitmap_t;
 // bitmap size
 #define BITMAP_SIZE (sizeof(bitmap_t) * 8)
 
+struct mutex_cond_pair {
+  pthread_mutex_t mutex;
+  pthread_cond_t cond;
+};
+
 // Struct to hold a single bitmap and associated locks
 typedef struct lock_group {
   bitmap_t        bitmap;
-  pthread_mutex_t locks[BITMAP_SIZE];
+  struct mutex_cond_pair locks[BITMAP_SIZE];
 } lock_group_t;
 
 // Struct to hold our SHM locks.
@@ -41,5 +46,8 @@ int32_t deallocate_semaphore(shm_struct_t *shm, uint32_t sem_index);
 int32_t deallocate_all_semaphores(shm_struct_t *shm);
 int32_t lock_semaphore(shm_struct_t *shm, uint32_t sem_index);
 int32_t unlock_semaphore(shm_struct_t *shm, uint32_t sem_index);
+extern int32_t wait_semaphore(struct shm_struct *shm, uint32_t sem_index);
+extern int32_t signal_semaphore(struct shm_struct *shm, uint32_t sem_index);
+extern int32_t broadcast_semaphore(struct shm_struct *shm, uint32_t sem_index);
 
 #endif

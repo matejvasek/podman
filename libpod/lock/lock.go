@@ -79,4 +79,10 @@ type Locker interface {
 	// may still retain Container structs with the old lock. This simply
 	// advises the manager that the lock may be reallocated.
 	Free() error
+
+	Wait()
+
+	Broadcast()
+
+	Signal()
 }

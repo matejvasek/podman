@@ -73,6 +73,7 @@ shm_struct_t *setup_lock_shm(char *path, uint32_t num_locks, int *error_code) {
   size_t shm_size;
   shm_struct_t *shm;
   pthread_mutexattr_t attr;
+  pthread_condattr_t cond_attr;
 
   // If error_code doesn't point to anything, we can't reasonably return errors
   // So fail immediately
@@ -152,11 +153,23 @@ shm_struct_t *setup_lock_shm(char *path, uint32_t num_locks, int *error_code) {
     goto CLEANUP_FREEATTR;
   }
 
+  ret_code = pthread_condattr_init(&cond_attr);
+  if (ret_code != 0) {
+    *error_code = -1 * ret_code;
+    goto CLEANUP_FREEATTR;
+  }
+
+  ret_code = pthread_condattr_setpshared(&cond_attr, PTHREAD_PROCESS_SHARED);
+  if (ret_code != 0) {
+    *error_code = -1 * ret_code;
+    goto CLEANUP_COND_FREEATTR;
+  }
+
   // Initialize the mutex that protects the bitmaps using the mutex attributes
   ret_code = pthread_mutex_init(&(shm->segment_lock), &attr);
   if (ret_code != 0) {
     *error_code = -1 * ret_code;
-    goto CLEANUP_FREEATTR;
+    goto CLEANUP_COND_FREEATTR;
   }
 
   // Initialize all bitmaps to 0 initially
@@ -165,10 +178,15 @@ shm_struct_t *setup_lock_shm(char *path, uint32_t num_locks, int *error_code) {
     shm->locks[i].bitmap = 0;
     for (j = 0; j < BITMAP_SIZE; j++) {
       // Initialize each mutex
-      ret_code = pthread_mutex_init(&(shm->locks[i].locks[j]), &attr);
+      ret_code = pthread_mutex_init(&(shm->locks[i].locks[j]).mutex, &attr);
       if (ret_code != 0) {
-	*error_code = -1 * ret_code;
-	goto CLEANUP_FREEATTR;
+	      *error_code = -1 * ret_code;
+	      goto CLEANUP_COND_FREEATTR;
+      }
+      ret_code = pthread_cond_init(&(shm->locks[i].locks[j]).cond, &cond_attr);
+      if (ret_code != 0) {
+	      *error_code = -1 * ret_code;
+	      goto CLEANUP_COND_FREEATTR;
       }
     }
   }
@@ -183,7 +201,8 @@ shm_struct_t *setup_lock_shm(char *path, uint32_t num_locks, int *error_code) {
   pthread_mutexattr_destroy(&attr);
 
   return shm;
-
+CLEANUP_COND_FREEATTR:
+  pthread_condattr_destroy(&cond_attr);
   // Cleanup after an error
  CLEANUP_FREEATTR:
   pthread_mutexattr_destroy(&attr);
@@ -513,7 +532,7 @@ int32_t lock_semaphore(shm_struct_t *shm, uint32_t sem_index) {
   bitmap_index = sem_index / BITMAP_SIZE;
   index_in_bitmap = sem_index % BITMAP_SIZE;
 
-  return -1 * take_mutex(&(shm->locks[bitmap_index].locks[index_in_bitmap]));
+  return -1 * take_mutex(&(shm->locks[bitmap_index].locks[index_in_bitmap].mutex));
 }
 
 // Unlock a given semaphore
@@ -535,5 +554,68 @@ int32_t unlock_semaphore(shm_struct_t *shm, uint32_t sem_index) {
   bitmap_index = sem_index / BITMAP_SIZE;
   index_in_bitmap = sem_index % BITMAP_SIZE;
 
-  return -1 * release_mutex(&(shm->locks[bitmap_index].locks[index_in_bitmap]));
+  return -1 * release_mutex(&(shm->locks[bitmap_index].locks[index_in_bitmap].mutex));
+}
+
+// New stuff
+static int32_t get_mux_cond_pair(struct shm_struct *shm, uint32_t sem_index, struct mutex_cond_pair **out) {
+  int bitmap_index, index_in_bitmap;
+
+  if (shm == NULL) {
+    return -EINVAL;
+  }
+
+  if (sem_index >= shm->num_locks) {
+    return -EINVAL;
+  }
+
+  bitmap_index = sem_index / BITMAP_SIZE;
+  index_in_bitmap = sem_index % BITMAP_SIZE;
+
+  *out = &(shm->locks[bitmap_index].locks[index_in_bitmap]);
+  return 0;
+}
+
+int32_t wait_semaphore(struct shm_struct *shm, uint32_t sem_index) {
+  struct mutex_cond_pair *mux_cond_pair;
+  int32_t ret_code;
+  
+  ret_code = get_mux_cond_pair(shm, sem_index, &mux_cond_pair);
+  if (ret_code != 0)
+    return ret_code;
+
+  for (;;) {
+    ret_code = pthread_cond_wait(&mux_cond_pair->cond, &mux_cond_pair->mutex);
+    if (ret_code == EOWNERDEAD) {
+      ret_code = pthread_mutex_consistent(&mux_cond_pair->mutex);
+      if (ret_code != 0) {
+        return -ret_code;
+      }
+    } else {
+      return -ret_code;
+    }
+  }
+  return 0;
+}
+
+int32_t signal_semaphore(struct shm_struct *shm, uint32_t sem_index) {
+  struct mutex_cond_pair *mux_cond_pair;
+  int32_t ret_code;
+  
+  ret_code = get_mux_cond_pair(shm, sem_index, &mux_cond_pair);
+  if (ret_code != 0)
+    return -ret_code;
+
+  return -pthread_cond_signal(&mux_cond_pair->cond);
+}
+
+int32_t broadcast_semaphore(struct shm_struct *shm, uint32_t sem_index) {
+  struct mutex_cond_pair *mux_cond_pair;
+  int32_t ret_code;
+  
+  ret_code = get_mux_cond_pair(shm, sem_index, &mux_cond_pair);
+  if (ret_code != 0)
+    return -ret_code;
+
+  return -pthread_cond_broadcast(&mux_cond_pair->cond);
 }

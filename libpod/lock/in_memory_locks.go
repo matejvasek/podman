@@ -10,6 +10,7 @@ import (
 type Mutex struct {
 	id        uint32
 	lock      sync.Mutex
+	cond      *sync.Cond
 	allocated bool
 }
 
@@ -55,6 +56,10 @@ func NewInMemoryManager(numLocks uint32) (Manager, error) {
 	manager := new(InMemoryManager)
 	manager.numLocks = numLocks
 	manager.locks = make([]*Mutex, numLocks)
+
+	for _, lock := range manager.locks {
+		lock.cond = sync.NewCond(&lock.lock)
+	}
 
 	var i uint32
 	for i = 0; i < numLocks; i++ {
@@ -115,4 +120,16 @@ func (m *InMemoryManager) FreeAllLocks() error {
 	}
 
 	return nil
+}
+
+func (m *Mutex) Wait() {
+	m.cond.Wait()
+}
+
+func (m *Mutex) Broadcast() {
+	m.cond.Broadcast()
+}
+
+func (m *Mutex) Signal() {
+	m.cond.Signal()
 }

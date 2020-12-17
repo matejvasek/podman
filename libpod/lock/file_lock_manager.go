@@ -108,3 +108,15 @@ func (l *FileLock) Unlock() {
 func (l *FileLock) Free() error {
 	return l.manager.locks.DeallocateLock(l.lockID)
 }
+
+func (l *FileLock) Wait() {
+	panic("implement me")
+}
+
+func (l *FileLock) Broadcast() {
+	panic("implement me")
+}
+
+func (l *FileLock) Signal() {
+	panic("implement me")
+}

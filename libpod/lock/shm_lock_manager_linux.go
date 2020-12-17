@@ -126,3 +126,21 @@ func (l *SHMLock) Unlock() {
 func (l *SHMLock) Free() error {
 	return l.manager.locks.DeallocateSemaphore(l.lockID)
 }
+
+func (l *SHMLock) Wait() {
+	if err := l.manager.locks.WaitSemaphore(l.lockID); err != nil {
+		panic(err.Error())
+	}
+}
+
+func (l *SHMLock) Broadcast() {
+	if err := l.manager.locks.BroadcastSemaphore(l.lockID); err != nil {
+		panic(err.Error())
+	}
+}
+
+func (l *SHMLock) Signal() {
+	if err := l.manager.locks.SignalSemaphore(l.lockID); err != nil {
+		panic(err.Error())
+	}
+}

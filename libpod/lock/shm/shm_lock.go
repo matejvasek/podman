@@ -250,3 +250,54 @@ func (locks *SHMLocks) UnlockSemaphore(sem uint32) error {
 
 	return nil
 }
+
+func (locks *SHMLocks) WaitSemaphore(sem uint32) error {
+	if !locks.valid {
+		return errors.Wrapf(syscall.EINVAL, "locks have already been closed")
+	}
+
+	if sem > locks.maxLocks {
+		return errors.Wrapf(syscall.EINVAL, "given semaphore %d is higher than maximum locks count %d", sem, locks.maxLocks)
+	}
+
+	retCode := C.wait_semaphore(locks.lockStruct, C.uint32_t(sem))
+	if retCode < 0 {
+		// Negative errno returned
+		return syscall.Errno(-1 * retCode)
+	}
+	return nil
+}
+
+func (locks *SHMLocks) SignalSemaphore(sem uint32) error {
+	if !locks.valid {
+		return errors.Wrapf(syscall.EINVAL, "locks have already been closed")
+	}
+
+	if sem > locks.maxLocks {
+		return errors.Wrapf(syscall.EINVAL, "given semaphore %d is higher than maximum locks count %d", sem, locks.maxLocks)
+	}
+
+	retCode := C.signal_semaphore(locks.lockStruct, C.uint32_t(sem))
+	if retCode < 0 {
+		// Negative errno returned
+		return syscall.Errno(-1 * retCode)
+	}
+	return nil
+}
+
+func (locks *SHMLocks) BroadcastSemaphore(sem uint32) error {
+	if !locks.valid {
+		return errors.Wrapf(syscall.EINVAL, "locks have already been closed")
+	}
+
+	if sem > locks.maxLocks {
+		return errors.Wrapf(syscall.EINVAL, "given semaphore %d is higher than maximum locks count %d", sem, locks.maxLocks)
+	}
+
+	retCode := C.broadcast_semaphore(locks.lockStruct, C.uint32_t(sem))
+	if retCode < 0 {
+		// Negative errno returned
+		return syscall.Errno(-1 * retCode)
+	}
+	return nil
+}
