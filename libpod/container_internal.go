@@ -763,6 +763,7 @@ func (c *Container) isStopped() (bool, error) {
 
 // save container state to the database
 func (c *Container) save() error {
+	defer c.lock.Broadcast()
 	if err := c.runtime.state.SaveContainer(c); err != nil {
 		return errors.Wrapf(err, "error saving container %s state", c.ID())
 	}

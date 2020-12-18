@@ -510,19 +510,29 @@ func (c *Container) WaitForConditionWithInterval(waitTimeout time.Duration, cond
 	if !c.valid {
 		return -1, define.ErrCtrRemoved
 	}
+
 	if condition == define.ContainerStateStopped || condition == define.ContainerStateExited {
 		return c.WaitWithInterval(waitTimeout)
 	}
+
+	if !c.batched {
+		c.lock.Lock()
+		defer c.lock.Unlock()
+	}
+	if err := c.syncContainer(); err != nil {
+		return -1, err
+	}
 	for {
-		state, err := c.State()
-		if err != nil {
-			return -1, err
-		}
+		state := c.state.State
 		if state == condition {
 			break
 		}
-		time.Sleep(waitTimeout)
+		c.lock.Wait()
+		if err := c.syncContainer(); err != nil {
+			return -1, err
+		}
 	}
+	
 	return -1, nil
 }
 
