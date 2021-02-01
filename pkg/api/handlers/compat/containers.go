@@ -23,10 +23,8 @@ import (
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/go-connections/nat"
 	"github.com/docker/go-units"
-	"github.com/gorilla/mux"
 	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 )
 
 func RemoveContainer(w http.ResponseWriter, r *http.Request) {
@@ -245,26 +243,8 @@ func KillContainer(w http.ResponseWriter, r *http.Request) {
 }
 
 func WaitContainer(w http.ResponseWriter, r *http.Request) {
-	var msg string
 	// /{version}/containers/(name)/wait
-	exitCode, err := utils.WaitContainer(w, r)
-	if err != nil {
-		if errors.Cause(err) == define.ErrNoSuchCtr {
-			logrus.Warnf("container not found %q: %v", utils.GetName(r), err)
-			return
-		}
-		logrus.Warnf("failed to wait on container %q: %v", mux.Vars(r)["name"], err)
-		return
-	}
-
-	utils.WriteResponse(w, http.StatusOK, handlers.ContainerWaitOKBody{
-		StatusCode: int(exitCode),
-		Error: struct {
-			Message string
-		}{
-			Message: msg,
-		},
-	})
+	utils.WaitContainerDocker(w, r)
 }
 
 func LibpodToContainer(l *libpod.Container, sz bool) (*handlers.Container, error) {
