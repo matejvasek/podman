@@ -82,24 +82,24 @@ func (o *{{.StructName}}) ToParams() (url.Values, error) {
 	}
 	return params, nil
 }
-`
 
-var fieldTmpl = `
+{{range $field := .Fields}}
 // With{{.Name}}
-func(o *{{.StructName}}) With{{.Name}}(value {{.Type}}) *{{.StructName}} {
-	v := {{.TypedValue}}
-	o.{{.Name}} = v
+func(o *{{$field.StructName}}) With{{$field.Name}}(value {{$field.Type}}) *{{$field.StructName}} {
+	v := {{$field.TypedValue}}
+	o.{{$field.Name}} = v
 	return o
 }
 
 // Get{{.Name}}
-func(o *{{.StructName}}) Get{{.Name}}() {{.Type}} {
-	var {{.ZeroName}} {{.Type}}
-	if o.{{.Name}} == nil {
-		return {{.ZeroName}}
+func(o *{{$field.StructName}}) Get{{$field.Name}}() {{$field.Type}} {
+	var {{$field.ZeroName}} {{$field.Type}}
+	if o.{{$field.Name}} == nil {
+		return {{$field.ZeroName}}
 	}
-	return {{.TypedName}}
+	return {{$field.TypedName}}
 }
+{{end}}
 `
 
 type fieldStruct struct {
@@ -143,20 +143,7 @@ func main() {
 			out.Close()
 		}
 	}()
-	bodyStruct := struct {
-		PackageName string
-		Imports     []string
-		Date        string
-		StructName  string
-	}{
-		PackageName: pkg,
-		Imports:     imports,
-		Date:        time.Now().String(),
-		StructName:  inputStructName,
-	}
 
-	body := template.Must(template.New("body").Parse(bodyTmpl))
-	fields := template.Must(template.New("fields").Parse(fieldTmpl))
 	ast.Inspect(f, func(n ast.Node) bool {
 		ref, refOK := n.(*ast.TypeSpec)
 		if refOK {
@@ -200,18 +187,26 @@ func main() {
 					fieldStructs = append(fieldStructs, fStruct)
 				} // for
 
+				bodyStruct := struct {
+					PackageName string
+					Imports     []string
+					Date        string
+					StructName  string
+					Fields      []fieldStruct
+				}{
+					PackageName: pkg,
+					Imports:     imports,
+					Date:        time.Now().String(),
+					StructName:  inputStructName,
+					Fields:      fieldStructs,
+				}
+
+				body := template.Must(template.New("body").Parse(bodyTmpl))
+
 				// create the body
 				if err := body.Execute(out, bodyStruct); err != nil {
 					fmt.Println(err)
 					os.Exit(1)
-				}
-
-				// create with func from the struct fields
-				for _, fs := range fieldStructs {
-					if err := fields.Execute(out, fs); err != nil {
-						fmt.Println(err)
-						os.Exit(1)
-					}
 				}
 
 				// close out file
