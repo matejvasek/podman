@@ -17,6 +17,9 @@ func (o *EventsOptions) Changed(fieldName string) bool {
 
 // ToParams
 func (o *EventsOptions) ToParams() (url.Values, error) {
+	if o == nil {
+		return url.Values{}, nil
+	}
 	return util.ToParams(o)
 }
 

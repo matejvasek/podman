@@ -17,5 +17,8 @@ func (o *TagOptions) Changed(fieldName string) bool {
 
 // ToParams
 func (o *TagOptions) ToParams() (url.Values, error) {
+	if o == nil {
+		return url.Values{}, nil
+	}
 	return util.ToParams(o)
 }

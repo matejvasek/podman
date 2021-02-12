@@ -17,6 +17,9 @@ func (o *ExportOptions) Changed(fieldName string) bool {
 
 // ToParams
 func (o *ExportOptions) ToParams() (url.Values, error) {
+	if o == nil {
+		return url.Values{}, nil
+	}
 	return util.ToParams(o)
 }
 

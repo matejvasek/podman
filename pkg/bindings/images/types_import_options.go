@@ -17,6 +17,9 @@ func (o *ImportOptions) Changed(fieldName string) bool {
 
 // ToParams
 func (o *ImportOptions) ToParams() (url.Values, error) {
+	if o == nil {
+		return url.Values{}, nil
+	}
 	return util.ToParams(o)
 }
 

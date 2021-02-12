@@ -17,5 +17,8 @@ func (o *UnpauseOptions) Changed(fieldName string) bool {
 
 // ToParams
 func (o *UnpauseOptions) ToParams() (url.Values, error) {
+	if o == nil {
+		return url.Values{}, nil
+	}
 	return util.ToParams(o)
 }
