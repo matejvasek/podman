@@ -32,9 +32,6 @@ func (o *{{.StructName}}) Changed(fieldName string) bool {
 
 // ToParams
 func (o *{{.StructName}}) ToParams() (url.Values, error) {
-	if o == nil {
-		return url.Values{}, nil
-	}
 	return util.ToParams(o)
 }
 

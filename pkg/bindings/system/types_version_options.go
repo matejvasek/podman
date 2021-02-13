@@ -17,8 +17,5 @@ func (o *VersionOptions) Changed(fieldName string) bool {
 
 // ToParams
 func (o *VersionOptions) ToParams() (url.Values, error) {
-	if o == nil {
-		return url.Values{}, nil
-	}
 	return util.ToParams(o)
 }

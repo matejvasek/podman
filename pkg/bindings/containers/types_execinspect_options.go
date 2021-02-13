@@ -17,8 +17,5 @@ func (o *ExecInspectOptions) Changed(fieldName string) bool {
 
 // ToParams
 func (o *ExecInspectOptions) ToParams() (url.Values, error) {
-	if o == nil {
-		return url.Values{}, nil
-	}
 	return util.ToParams(o)
 }

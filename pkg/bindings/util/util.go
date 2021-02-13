@@ -42,7 +42,7 @@ func Changed(o interface{}, fieldName string) bool {
 
 func ToParams(o interface{}) (url.Values, error) {
 	params := url.Values{}
-	if o == nil {
+	if o == nil || reflect.ValueOf(o).IsNil() {
 		return params, nil
 	}
 	json := jsoniter.ConfigCompatibleWithStandardLibrary

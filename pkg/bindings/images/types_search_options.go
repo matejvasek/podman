@@ -17,9 +17,6 @@ func (o *SearchOptions) Changed(fieldName string) bool {
 
 // ToParams
 func (o *SearchOptions) ToParams() (url.Values, error) {
-	if o == nil {
-		return url.Values{}, nil
-	}
 	return util.ToParams(o)
 }
 

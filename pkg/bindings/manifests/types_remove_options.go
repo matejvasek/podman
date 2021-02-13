@@ -17,8 +17,5 @@ func (o *RemoveOptions) Changed(fieldName string) bool {
 
 // ToParams
 func (o *RemoveOptions) ToParams() (url.Values, error) {
-	if o == nil {
-		return url.Values{}, nil
-	}
 	return util.ToParams(o)
 }

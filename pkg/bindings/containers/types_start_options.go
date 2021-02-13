@@ -17,9 +17,6 @@ func (o *StartOptions) Changed(fieldName string) bool {
 
 // ToParams
 func (o *StartOptions) ToParams() (url.Values, error) {
-	if o == nil {
-		return url.Values{}, nil
-	}
 	return util.ToParams(o)
 }
 

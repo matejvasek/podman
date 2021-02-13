@@ -17,9 +17,6 @@ func (o *AttachOptions) Changed(fieldName string) bool {
 
 // ToParams
 func (o *AttachOptions) ToParams() (url.Values, error) {
-	if o == nil {
-		return url.Values{}, nil
-	}
 	return util.ToParams(o)
 }
 
